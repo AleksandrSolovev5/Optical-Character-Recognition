@@ -1,0 +1,9 @@
+easyocr
+transformers
+gradio
+opencv-python
+numpy
+Pillow
+accelerate
+requests
+sentencepiece
