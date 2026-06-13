@@ -4,12 +4,12 @@ import tempfile
 from PIL import Image
 
 print("Загрузка моделей в память, пожалуйста, подождите...")
-pipeline = HTRPipeline(multiscale=True)
+pipeline = HTRPipeline()
 
 
-def recognize_text(image, use_multiscale):
+def recognize_text(image):
     if image is None:
-        return "Пожалуйста, загрузите изображение.", "", None, "Слов найдено: —"
+        return "Пожалуйста, загрузите изображение.", "", None
 
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as temp:
         pil_img = Image.fromarray(image)
@@ -17,74 +17,50 @@ def recognize_text(image, use_multiscale):
         temp_path = temp.name
 
     try:
-        raw_text, corrected_text, debug_img, word_count = pipeline.process_image(
-            temp_path,
-            use_multiscale=use_multiscale
-        )
+        raw_text, corrected_text, debug_img, word_count = pipeline.process_image(temp_path)
     except Exception as e:
-        return f"Произошла ошибка при распознавании: {str(e)}", "", None, "Ошибка"
+        return f"Произошла ошибка при распознавании: {str(e)}", "", None
 
-    mode_label = "мультимасштаб" if use_multiscale else "стандарт"
-    stats = f"📦 Найдено регионов: {word_count} ({mode_label})"
-    return raw_text, corrected_text, debug_img, stats
+    return raw_text, corrected_text, debug_img
 
 
-# --------------------------------------------------------------------------
-# Интерфейс Gradio (совместим с Gradio 4.x и 6.x)
-# --------------------------------------------------------------------------
+
 with gr.Blocks() as demo:
     gr.Markdown(
         """
-        # ✍️ HTR: Распознавание русской рукописи
-        Загрузите фотографию или скан страницы с русским рукописным текстом.
-        Система найдёт слова, распознает их и исправит опечатки через Яндекс Спеллер.
+        # Распознавание рукописного текста (HTR)
 
-        > **Модель:** `kazars24/trocr-base-handwritten-ru` (кириллица, HKR датасет)  
-        > **Детектор:** EasyOCR/CRAFT с мультимасштабным поиском + NMS
+        Загрузите изображение страницы с рукописным текстом на русском языке.
+        Система выполнит детекцию слов, распознавание символов и коррекцию орфографии.
         """
     )
 
     with gr.Row():
         with gr.Column(scale=1):
-            input_image = gr.Image(label="📷 Загрузите фото рукописного текста", height=350)
-            multiscale_toggle = gr.Checkbox(
-                label="🔍 Мультимасштабная детекция (медленнее, но ловит бледные/слитные слова)",
-                value=True
+            input_image = gr.Image(
+                label="Изображение для распознавания",
+                height=350,
+                sources=["upload"]
             )
-            run_btn = gr.Button("▶ Распознать", variant="primary", size="lg")
-            stats_label = gr.Textbox(
-                label="Статистика",
-                value="Слов найдено: —",
-                interactive=False
-            )
+            run_btn = gr.Button("Распознать", variant="primary", size="lg")
 
         with gr.Column(scale=1):
-            debug_image = gr.Image(label="🟩 Найденные регионы (зелёные рамки)", height=350)
+            debug_image = gr.Image(label="Результат сегментации слов", height=350)
 
     with gr.Row():
         raw_output = gr.Textbox(
-            label="📄 Сырой распознанный текст (до коррекции)",
+            label="Распознанный текст (без автокоррекции)",
             lines=8
         )
         corrected_output = gr.Textbox(
-            label="✅ Текст после Яндекс Спеллера",
+            label="Результат после автокоррекции",
             lines=8
         )
 
     run_btn.click(
         fn=recognize_text,
-        inputs=[input_image, multiscale_toggle],
-        outputs=[raw_output, corrected_output, debug_image, stats_label]
-    )
-
-    gr.Markdown(
-        """
-        ---
-        **Советы:**
-        - Если слова всё ещё пропадают — убедитесь что чекбокс **Мультимасштабная детекция** включён
-        - Для очень бледного текста попробуйте сфотографировать при лучшем освещении
-        - Оптимальное разрешение изображения: от 1000px по длинной стороне
-        """
+        inputs=[input_image],
+        outputs=[raw_output, corrected_output, debug_image]
     )
 
 
