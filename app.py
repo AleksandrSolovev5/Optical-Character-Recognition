@@ -1,9 +1,14 @@
+import os
+os.environ["HF_HUB_VERBOSITY"] = "error"
+import logging
+logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+
 import gradio as gr
 from htr_pipeline import HTRPipeline
 import tempfile
 from PIL import Image
 
-print("Загрузка моделей в память, пожалуйста, подождите...")
+print("Загрузка...")
 pipeline = HTRPipeline()
 
 

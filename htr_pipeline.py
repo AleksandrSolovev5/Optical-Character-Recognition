@@ -8,11 +8,10 @@ from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 
 class HTRPipeline:
     def __init__(self):
-        print("Инициализация HTR пайплайна...")
+        print("Инициализация HTR...")
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"Используемое устройство: {self.device}")
+        print(f"Устройство: {self.device}")
 
-        print("Загрузка детектора текста (DocTR / DBNet++)...")
         from doctr.models import detection_predictor
         self.doctr_detector = detection_predictor(
             arch='db_resnet50',
@@ -20,15 +19,12 @@ class HTRPipeline:
             assume_straight_pages=True
         )
         self.doctr_detector.model.to(self.device)
-        print("✅ DocTR DBNet++ загружен!")
 
         model_name = "kazars24/trocr-base-handwritten-ru"
-        print(f"Загрузка модели распознавания: {model_name}...")
         self.processor = TrOCRProcessor.from_pretrained(model_name)
         self.model = VisionEncoderDecoderModel.from_pretrained(model_name).to(self.device)
         self.model.eval()
-        print(f"✅ Модель {model_name} загружена!")
-        print("HTR пайплайн готов! Детектор: DOCTR")
+        print("Пайплайн HTR готов.")
 
     def _detect_doctr(self, img):
         h, w = img.shape[:2]
@@ -40,14 +36,16 @@ class HTRPipeline:
         poly_boxes = []
         if len(result) > 0:
             page_boxes = result[0]['words']
-            print(f"    DocTR нашёл {len(page_boxes)} регионов")
+
             for box in page_boxes:
                 x_min = int(box[0] * w)
                 y_min = int(box[1] * h)
                 x_max = int(box[2] * w)
                 y_max = int(box[3] * h)
 
-                if (x_max - x_min) < w * 0.01 or (y_max - y_min) < h * 0.008:
+                box_w = x_max - x_min
+                box_h = y_max - y_min
+                if (box_w < w * 0.02 and box_h < h * 0.02) or box_h < h * 0.008 or box_w < w * 0.008:
                     continue
 
                 poly_boxes.append([
@@ -105,11 +103,11 @@ class HTRPipeline:
         if img is None:
             raise ValueError(f"Не удалось загрузить изображение: {image_path}")
 
-        print("  🔍 Детекция через DocTR (DBNet++)...")
+        print("Детекция...")
         poly_boxes = self._detect_doctr(img)
 
         total_words = len(poly_boxes)
-        print(f"  📦 Найдено регионов: {total_words}")
+        print(f"Найдено регионов: {total_words}")
 
         if total_words == 0:
             img_debug_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -178,7 +176,7 @@ class HTRPipeline:
         if not text.strip():
             return text
         try:
-            print("  📝 Отправка в Яндекс Спеллер...")
+            print("Коррекция текста...")
             url = "https://speller.yandex.net/services/spellservice.json/checkText"
             data = {'text': text, 'lang': 'ru', 'options': 518}
             response = requests.post(url, data=data, timeout=5)
@@ -193,5 +191,5 @@ class HTRPipeline:
                         text = text[:pos] + suggestion + text[pos + length:]
             return text
         except Exception as e:
-            print(f"  ⚠️  Ошибка Яндекс Спеллера: {e}")
+            print(f"Ошибка проверки орфографии: {e}")
             return text

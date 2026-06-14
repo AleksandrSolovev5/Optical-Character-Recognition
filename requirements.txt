@@ -9,3 +9,9 @@ sentencepiece
 python-doctr
 pyclipper
 shapely
+pandas
+scipy
+langdetect
+onnx
+rapidfuzz
+validators
