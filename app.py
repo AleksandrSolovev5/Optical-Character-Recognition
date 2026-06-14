@@ -2,6 +2,9 @@ import os
 os.environ["HF_HUB_VERBOSITY"] = "error"
 import logging
 logging.getLogger("huggingface_hub").setLevel(logging.ERROR)
+import warnings
+warnings.filterwarnings("ignore", message=".*unauthenticated requests.*")
+warnings.filterwarnings("ignore", category=UserWarning)
 
 import gradio as gr
 from htr_pipeline import HTRPipeline
