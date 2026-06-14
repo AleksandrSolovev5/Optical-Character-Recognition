@@ -20,9 +20,14 @@ class HTRPipeline:
         )
         self.doctr_detector.model.to(self.device)
 
-        model_name = "kazars24/trocr-base-handwritten-ru"
-        self.processor = TrOCRProcessor.from_pretrained(model_name)
-        self.model = VisionEncoderDecoderModel.from_pretrained(model_name).to(self.device)
+        # Доступные модели:
+        # 1. raxtemur/trocr-base-ru
+        # 2. kazars24/trocr-base-handwritten-ru
+
+        self.model_name = "raxtemur/trocr-base-ru"
+
+        self.processor = TrOCRProcessor.from_pretrained(self.model_name)
+        self.model = VisionEncoderDecoderModel.from_pretrained(self.model_name).to(self.device)
         self.model.eval()
         print("Пайплайн HTR готов.")
 
