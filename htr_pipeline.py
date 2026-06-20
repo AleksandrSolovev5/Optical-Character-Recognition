@@ -24,7 +24,7 @@ class HTRPipeline:
         # 1. raxtemur/trocr-base-ru
         # 2. kazars24/trocr-base-handwritten-ru
 
-        self.model_name = "raxtemur/trocr-base-ru"
+        self.model_name = "kazars24/trocr-base-handwritten-ru"
 
         self.processor = TrOCRProcessor.from_pretrained(self.model_name)
         self.model = VisionEncoderDecoderModel.from_pretrained(self.model_name).to(self.device)
